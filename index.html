@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Google Drive MP3 Player</title>
+  <title>MUSICMUSICMUSIC</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -81,7 +81,7 @@
 </head>
 <body>
 
-  <h1>🎵 Google Drive MP3 Player</h1>
+  <h1>🎵 MUSICMUSICMUSIC</h1>
   <input type="text" id="search" placeholder="Search for a track..." />
   <audio id="audio" controls autoplay></audio>
 
@@ -154,9 +154,8 @@
 
     async function loadTracks() {
       try {
-        const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType contains 'audio'&fields=files(id,name,mimeType)&key=${apiKey}`
-        );
+        const query = encodeURIComponent(`'${folderId}' in parents and (mimeType='audio/mpeg' or mimeType='audio/mp4' or mimeType='audio/x-wav')`);
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,mimeType)&key=${apiKey}`);
         const data = await res.json();
         if (!data.files || data.files.length === 0) {
           title.textContent = 'No audio files found.';
@@ -188,9 +187,8 @@
     });
 
     audio.addEventListener('ended', nextTrack);
-
     loadTracks();
   </script>
 
 </body>
-</
+</html>
