@@ -4,20 +4,95 @@
   <meta charset="UTF-8">
   <title>Google Drive MP3 Player</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    button { margin: 5px; padding: 10px; }
-    #track-title { margin-top: 20px; font-weight: bold; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: white;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    #search {
+      width: 60%;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      margin: 20px auto;
+      display: block;
+      font-size: 1em;
+    }
+
+    #audio {
+      width: 80%;
+      margin: 20px auto;
+    }
+
+    #track-title {
+      font-size: 1.2em;
+      margin-top: 10px;
+      color: #1DB954;
+    }
+
+    .controls button {
+      background: #1DB954;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      padding: 10px 20px;
+      font-size: 1em;
+      margin: 10px 5px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    .controls button:hover {
+      background: #1ed760;
+    }
+
+    #track-list {
+      margin-top: 30px;
+      max-height: 300px;
+      overflow-y: auto;
+      text-align: left;
+      padding: 0 20%;
+    }
+
+    .track-item {
+      padding: 8px;
+      cursor: pointer;
+      border-bottom: 1px solid #333;
+    }
+
+    .track-item:hover {
+      background-color: #1a1a1a;
+    }
+
+    .active {
+      color: #1DB954;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
+
   <h1>🎵 Google Drive MP3 Player</h1>
+  <input type="text" id="search" placeholder="Search for a track..." />
   <audio id="audio" controls autoplay></audio>
-  <div>
+
+  <div class="controls">
     <button onclick="prevTrack()">⏮️ Prev</button>
     <button onclick="nextTrack()">⏭️ Next</button>
     <button onclick="shuffleTrack()">🔀 Shuffle</button>
   </div>
+
   <div id="track-title">Loading tracks...</div>
+  <div id="track-list"></div>
 
   <script>
     const folderId = '1DGz9zEQh29EAqTZpmWK5mwSj5HComnkn';
@@ -25,45 +100,71 @@
 
     const audio = document.getElementById('audio');
     const title = document.getElementById('track-title');
+    const trackListDiv = document.getElementById('track-list');
+    const searchInput = document.getElementById('search');
+
     let tracks = [];
+    let filteredTracks = [];
     let currentTrack = 0;
 
     function playTrack(index) {
-      const track = tracks[index];
+      const track = filteredTracks[index];
       if (!track) return;
       currentTrack = index;
       const url = `https://www.googleapis.com/drive/v3/files/${track.id}?alt=media&key=${apiKey}`;
       audio.src = url;
       title.textContent = track.name;
       audio.play();
+      highlightCurrentTrack();
     }
 
     function nextTrack() {
-      currentTrack = (currentTrack + 1) % tracks.length;
+      currentTrack = (currentTrack + 1) % filteredTracks.length;
       playTrack(currentTrack);
     }
 
     function prevTrack() {
-      currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
+      currentTrack = (currentTrack - 1 + filteredTracks.length) % filteredTracks.length;
       playTrack(currentTrack);
     }
 
     function shuffleTrack() {
-      const randomIndex = Math.floor(Math.random() * tracks.length);
+      const randomIndex = Math.floor(Math.random() * filteredTracks.length);
       playTrack(randomIndex);
+    }
+
+    function renderTrackList() {
+      trackListDiv.innerHTML = '';
+      filteredTracks.forEach((track, index) => {
+        const div = document.createElement('div');
+        div.className = 'track-item';
+        div.textContent = track.name;
+        div.onclick = () => playTrack(index);
+        trackListDiv.appendChild(div);
+      });
+      highlightCurrentTrack();
+    }
+
+    function highlightCurrentTrack() {
+      const items = document.querySelectorAll('.track-item');
+      items.forEach((el, i) => {
+        el.classList.toggle('active', i === currentTrack);
+      });
     }
 
     async function loadTracks() {
       try {
         const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='audio/mpeg'&fields=files(id,name)&key=${apiKey}`
+          `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType contains 'audio'&fields=files(id,name,mimeType)&key=${apiKey}`
         );
         const data = await res.json();
-        if (data.files.length === 0) {
-          title.textContent = 'No MP3 files found.';
+        if (!data.files || data.files.length === 0) {
+          title.textContent = 'No audio files found.';
           return;
         }
         tracks = data.files;
+        filteredTracks = tracks;
+        renderTrackList();
         playTrack(0);
       } catch (err) {
         title.textContent = 'Failed to load tracks.';
@@ -71,8 +172,25 @@
       }
     }
 
-    loadTracks();
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      filteredTracks = tracks.filter(track =>
+        track.name.toLowerCase().includes(query)
+      );
+      renderTrackList();
+      currentTrack = 0;
+      if (filteredTracks.length > 0) {
+        playTrack(0);
+      } else {
+        audio.pause();
+        title.textContent = 'No results found.';
+      }
+    });
+
     audio.addEventListener('ended', nextTrack);
+
+    loadTracks();
   </script>
+
 </body>
-</html>
+</
